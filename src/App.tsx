@@ -9,7 +9,6 @@ import { OllamaConnectionModal } from './components/ollama/OllamaConnectionModal
 
 export function App() {
   const [activePage, setActivePage] = useState('generar')
-  const [showModal, setShowModal] = useState(true)
   const { settings } = useSettingsStore()
 
   const renderPage = () => {
@@ -32,15 +31,16 @@ export function App() {
       <Sidebar
         activePage={activePage}
         onNavigate={setActivePage}
-        onShowConnection={() => setShowModal(true)}
+        onShowConnection={() => {
+          try {
+            localStorage.removeItem('ollama-connection-modal-dismissed')
+          } catch {
+            // ignore
+          }
+        }}
       />
       <main className="main-content">{renderPage()}</main>
-      {showModal && (
-        <OllamaConnectionModal
-          ollamaUrl={settings.ollamaUrl}
-          onConnected={() => setShowModal(false)}
-        />
-      )}
+      <OllamaConnectionModal ollamaUrl={settings.ollamaUrl} onConnected={() => {}} />
     </div>
   )
 }

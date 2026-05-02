@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { OllamaSetupPanel } from './OllamaSetupPanel'
 
+const DISMISSED_KEY = 'ollama-connection-modal-dismissed'
+
 interface OllamaConnectionModalProps {
   ollamaUrl: string
   onConnected: () => void
@@ -19,15 +21,11 @@ function isLocalhost(): boolean {
 }
 
 function isDevServer(): boolean {
-  return isLocalhost() && (
-    window.location.port === '5173'
-  )
+  return isLocalhost() && window.location.port === '5173'
 }
 
 function isServerCjs(): boolean {
-  return isLocalhost() && (
-    window.location.port === '8000'
-  )
+  return isLocalhost() && window.location.port === '8000'
 }
 
 async function testConnection(url: string, protocol: string): Promise<boolean> {
@@ -126,7 +124,13 @@ function ConnectionInstructions() {
 
 export function OllamaConnectionModal({ ollamaUrl, onConnected: _onConnected }: OllamaConnectionModalProps) {
   const [status, setStatus] = useState<'checking' | 'disconnected' | 'connected'>('checking')
-  const [dismissed, setDismissed] = useState(false)
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return localStorage.getItem(DISMISSED_KEY) === 'true'
+    } catch {
+      return false
+    }
+  })
   const protocol = detectProtocol()
 
   useEffect(() => {
@@ -139,6 +143,11 @@ export function OllamaConnectionModal({ ollamaUrl, onConnected: _onConnected }: 
 
   const handleDismiss = () => {
     setDismissed(true)
+    try {
+      localStorage.setItem(DISMISSED_KEY, 'true')
+    } catch {
+      // ignore
+    }
   }
 
   const handleTest = async (): Promise<boolean> => {
@@ -146,11 +155,11 @@ export function OllamaConnectionModal({ ollamaUrl, onConnected: _onConnected }: 
     return connected
   }
 
-  if (status === 'connected') {
+  if (dismissed) {
     return null
   }
 
-  if (dismissed && status === 'disconnected') {
+  if (status === 'connected') {
     return null
   }
 
