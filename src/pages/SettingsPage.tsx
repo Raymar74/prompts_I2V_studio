@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { Field } from '../components/ui/FormField'
+import { OllamaSetupPanel } from '../components/ollama/OllamaSetupPanel'
 
 const modelOptions: Record<string, string[]> = {
   llama3: ['llama3.1:8b', 'llama3.1:70b', 'llama3:8b', 'llama3:70b'],
@@ -11,9 +13,32 @@ const modelOptions: Record<string, string[]> = {
 
 export function SettingsPage() {
   const { settings, updateSettings } = useSettingsStore()
+  const [connStatus, setConnStatus] = useState<'idle' | 'checking' | 'ok' | 'error'>('idle')
 
   const update = (key: string, value: string | number) => {
     updateSettings({ [key]: value })
+  }
+
+  const testConnection = async (): Promise<boolean> => {
+    setConnStatus('checking')
+    try {
+      const isDevServer = window.location.origin.includes('localhost:5173') ||
+        window.location.origin.includes('127.0.0.1:5173')
+      const url = isDevServer
+        ? '/ollama/api/tags'
+        : `${settings.ollamaUrl}/api/tags`
+      const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+      if (res.ok) {
+        setConnStatus('ok')
+        return true
+      } else {
+        setConnStatus('error')
+        return false
+      }
+    } catch {
+      setConnStatus('error')
+      return false
+    }
   }
 
   return (
@@ -121,30 +146,28 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <div className="card p-5 space-y-3">
+      <div className="card p-5 space-y-4">
         <p className="section-title">Estado de la conexión</p>
         <button
           className="btn-secondary w-full justify-center"
-          onClick={async () => {
-            try {
-              const isDevServer = window.location.origin.includes('localhost:5173') ||
-                window.location.origin.includes('127.0.0.1:5173')
-              const url = isDevServer
-                ? '/ollama/api/tags'
-                : `${settings.ollamaUrl}/api/tags`
-              const res = await fetch(url)
-              if (res.ok) {
-                alert('✅ Ollama está corriendo correctamente')
-              } else {
-                alert('❌ Ollama respondió con error')
-              }
-            } catch {
-              alert('❌ No se pudo conectar a Ollama. Asegurate de que esté corriendo.')
-            }
-          }}
+          onClick={testConnection}
+          disabled={connStatus === 'checking'}
         >
-          Verificar conexión
+          {connStatus === 'checking'
+            ? 'Verificando...'
+            : connStatus === 'ok'
+              ? '✅ Ollama conectado'
+              : connStatus === 'error'
+                ? '❌ No se pudo conectar'
+                : 'Verificar conexión'}
         </button>
+
+        {connStatus === 'error' && (
+          <div className="bg-white/5 rounded-lg p-4">
+            <OllamaSetupPanel ollamaUrl={settings.ollamaUrl} onTest={testConnection} />
+          </div>
+        )}
+
         <p className="text-xs text-white/30">
           Ollama debe estar ejecutándose en tu máquina para que Studio funcione.
           <br />

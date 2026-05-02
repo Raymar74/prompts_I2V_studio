@@ -4,9 +4,10 @@ import { useCallback } from 'react'
 interface SidebarProps {
   activePage: string
   onNavigate: (page: string) => void
+  onShowConnection: () => void
 }
 
-export function Sidebar({ activePage, onNavigate }: SidebarProps) {
+export function Sidebar({ activePage, onNavigate, onShowConnection }: SidebarProps) {
   const { characters, activeId, setActive, createBlank, upsert } =
     useCharacterStore()
   const activeCharacter =
@@ -90,6 +91,13 @@ export function Sidebar({ activePage, onNavigate }: SidebarProps) {
             <span className="active-name">{activeCharacter.nombre}</span>
           </div>
         )}
+        <button
+          className="btn-connection"
+          onClick={onShowConnection}
+          title="Verificar conexión con Ollama"
+        >
+          <span className="nav-icon">🔌</span> Conexión
+        </button>
       </div>
     </aside>
   )

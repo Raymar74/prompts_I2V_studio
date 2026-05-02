@@ -228,6 +228,29 @@ body {
   color: #9e9889;
 }
 
+.btn-connection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6d6659;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  background: transparent;
+  text-align: left;
+}
+
+.btn-connection:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #bfbbae;
+}
+
 .main-content {
   flex: 1;
   overflow-y: auto;
