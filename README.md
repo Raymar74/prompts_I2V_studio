@@ -31,20 +31,49 @@ Generador de contenido para personajes digitales con IA local. Crea guiones, pro
 
 ```bash
 # Clonar el repo
-git clone https://github.com/TU-USUARIO/analía-studio.git
-cd analía-studio
+git clone https://github.com/Raymar74/prompts_I2V_studio.git
+cd prompts_I2V_studio
 
 # Instalar dependencias
 npm install
 
 # Iniciar Ollama (en otra terminal)
 ollama run llama3.1:8b
+```
 
-# Iniciar la app en modo desarrollo
+## Uso
+
+### Opción 1: Servidor incluido (recomendado)
+
+```bash
+node server.cjs
+```
+
+Abrí http://localhost:8000 en tu navegador. El servidor incluye un proxy automático a Ollama.
+
+### Opción 2: Modo desarrollo
+
+```bash
 npm run dev
 ```
 
-La app se abre en `http://localhost:5173`.
+Abrí http://localhost:5173 en tu navegador. El proxy de Vite redirige las peticiones a Ollama automáticamente.
+
+### Opción 3: Abrir directamente el HTML
+
+Si abrís `dist/index.html` directamente en el navegador, necesitás configurar CORS en Ollama:
+
+**Windows:**
+```powershell
+setx OLLAMA_ORIGINS "*"
+ollama serve
+```
+
+**macOS/Linux:**
+```bash
+export OLLAMA_ORIGINS="*"
+ollama serve
+```
 
 ## Uso rápido
 
@@ -66,12 +95,15 @@ La app genera los **prompts y guiones**. Tú los usas en tu generador de imágen
 ```
 src/
 ├── components/       # UI reutilizable
-├── lib/             # Ollama client, export, helpers
-├── pages/           # Vistas principales (Generar, Personaje, etc.)
-├── store/           # Zustand stores (personajes, biblioteca, settings)
-├── types/           # TypeScript interfaces
-├── App.tsx          # Router principal
-└── main.tsx         # Entry point
+│   ├── layout/       # Sidebar
+│   ├── ollama/       # Modal y panel de conexión a Ollama
+│   └── ui/           # Botones, campos de formulario
+├── lib/              # Ollama client, export, helpers
+├── pages/            # Vistas principales
+├── store/            # Zustand stores
+├── types/            # TypeScript interfaces
+├── App.tsx           # Router principal
+└── main.tsx          # Entry point
 ```
 
 ## Build de producción
@@ -80,22 +112,7 @@ src/
 npm run build
 ```
 
-Genera un single-file HTML en `dist/index.html` que puedes abrir directamente en el navegador (requiere Ollama local con CORS habilitado).
-
-## Configuración de Ollama para uso sin proxy
-
-Si abres el archivo HTML directamente (sin el dev server de Vite), necesitas habilitar CORS en Ollama:
-
-**Windows (PowerShell):**
-```powershell
-$env:OLLAMA_ORIGINS="*"
-ollama serve
-```
-
-**macOS/Linux:**
-```bash
-OLLAMA_ORIGINS="*" ollama serve
-```
+Genera un single-file HTML en `dist/index.html`.
 
 ## Roadmap
 

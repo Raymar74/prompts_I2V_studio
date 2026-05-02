@@ -25,6 +25,3 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
-
-# Server (local-only)
-server.cjs
