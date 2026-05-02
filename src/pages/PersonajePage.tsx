@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { useCharacterStore } from '../store/useCharacterStore'
 import { Field, Slider, Tags } from '../components/ui/FormField'
+import { exportCharacter } from '../lib/file-io'
 
 type Section = 'identidad' | 'voz' | 'visual'
 
@@ -125,14 +126,26 @@ export function PersonajePage() {
           </h2>
           <p className="text-sm text-white/40">{character.ocupacion || 'Sin ocupación'}</p>
         </div>
-        <button
-          className="btn-ghost text-xs text-red-400 hover:text-red-300"
-          onClick={() => {
-            if (confirm('¿Eliminar este personaje?')) remove(character.id)
-          }}
-        >
-          Eliminar
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            className="btn-ghost text-xs text-white/40 hover:text-white/70"
+            onClick={() => {
+              const filename = exportCharacter(character)
+              alert(`✅ Personaje guardado como "${filename}"`)
+            }}
+            title="Guardar personaje como archivo JSON"
+          >
+            💾 Guardar
+          </button>
+          <button
+            className="btn-ghost text-xs text-red-400 hover:text-red-300"
+            onClick={() => {
+              if (confirm('¿Eliminar este personaje?')) remove(character.id)
+            }}
+          >
+            Eliminar
+          </button>
+        </div>
       </div>
 
       {storageWarning && (

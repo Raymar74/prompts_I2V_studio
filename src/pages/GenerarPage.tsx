@@ -4,6 +4,7 @@ import { useBibliotecaStore } from '../store/useBibliotecaStore'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { generateGuion, generateClips, generateCaption, generateImagenBasePrompt, ensamblarI2VPrompt, segmentarVoz } from '../lib/ollama'
 import { exportToZip } from '../lib/export'
+import { exportProject } from '../lib/file-io'
 import { CopyButton } from '../components/ui/CopyButton'
 import type { Paquete, Clip } from '../types'
 
@@ -448,11 +449,25 @@ export function GenerarPage() {
                 Se descargará un ZIP con imagen base, guión, prompts I2V estructurados, caption y lista FFmpeg.
               </p>
               <button
-                className="btn-primary"
+                className="btn-primary w-full justify-center"
                 onClick={() => exportToZip(p, character)}
               >
                 Descargar ZIP de producción
               </button>
+              <div className="border-t border-white/8 pt-4 space-y-3">
+                <p className="text-xs text-white/30">
+                  ¿Querés guardar este proyecto para recuperarlo después?
+                </p>
+                <button
+                  className="btn-secondary w-full justify-center"
+                  onClick={() => {
+                    const filename = exportProject(character, [p])
+                    alert(`✅ Proyecto guardado como "${filename}"`)
+                  }}
+                >
+                  📂 Guardar proyecto (JSON)
+                </button>
+              </div>
             </div>
           )}
         </div>
