@@ -81,7 +81,7 @@ export function GenerarPage() {
 
       const duracionTotal = getDuracionTotal()
 
-      const clipsFromLLM = await generateClips(config, character, guion, duracionTotal)
+      const clipsFromLLM = await generateClips(config, character, guion, duracionTotal, imagenBasePrompt)
 
       const segmentosVoz = segmentarVoz(guion.vozCompleta, duracionTotal)
 

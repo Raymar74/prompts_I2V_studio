@@ -276,7 +276,7 @@ IMPORTANTE: Responde SOLO con un JSON válido.
 { "imagenBasePrompt": "prompt completo en inglés para SDXL" }`
 }
 
-function buildClipsSystemPrompt(character: Character, clipCount: number, duracionTotal: number): string {
+function buildClipsSystemPrompt(character: Character, clipCount: number, duracionTotal: number, imagenBasePrompt: string): string {
   const pv = character.produccionVisual
   const duracionPorClip = Math.round(duracionTotal / clipCount)
   
@@ -296,12 +296,20 @@ PERSONAJE: ${character.nombre}
 ${pv.notasExtra ? `- Notas extra: ${pv.notasExtra}` : ''}
 
 ══════════════════════════════════════════
+IMAGEN BASE — RESPETAR VISUALMENTE
+══════════════════════════════════════════
+Esta es la descripción de la imagen que se usará como frame base para TODOS los clips:
+"${imagenBasePrompt}"
+
+REGLA CRÍTICA: El campo [SUBJECT] debe describir EXACTAMENTE la misma persona con la MISMA ropa y el MISMO entorno que aparece en la imagen base. NO cambies el outfit, NO cambies la escena, NO agregues elementos nuevos. Solo podés agregar movimiento de cámara, iluminación y expresiones faciales en [VISUAL] y [DIALOGUE]. El [SUBJECT] debe ser consistente en TODOS los clips.
+
+══════════════════════════════════════════
 REGLAS CRÍTICAS — INNEGOCIABLES
 ══════════════════════════════════════════
-1. El outfit SIEMPRE respeta: "${pv.estiloOutfit || 'casual'}" — NUNCA cambies la ropa
+1. El outfit SIEMPRE respeta lo descrito en la imagen base — NUNCA cambies la ropa
 2. Los prompts I2V JAMÁS deben animar la boca, labios, ni mandíbula (MuseTalk controla el lip sync)
 3. Los prompts I2V solo pueden animar: movimiento de cabeza, cejas, ojos, hombros, manos, postura
-4. El campo [SUBJECT] debe ser consistente en TODOS los clips (misma descripción del personaje)
+4. El campo [SUBJECT] debe ser consistente en TODOS los clips (misma descripción exacta del personaje)
 5. Todos los prompts van en INGLÉS
 6. El campo [DIALOGUE] debe incluir SIEMPRE la frase literal del personaje en formato: Subject says: "exact text from the script" — luego agregar la expresión facial/micro-gestos
 
@@ -401,7 +409,8 @@ export async function generateClips(
   config: OllamaConfig,
   character: Character,
   guion: { hook: string; desarrollo: string; punchline: string },
-  duracionTotal: number
+  duracionTotal: number,
+  imagenBasePrompt: string
 ): Promise<Clip[]> {
   const clipCount = Math.max(3, Math.round(duracionTotal / 11))
   
@@ -415,7 +424,7 @@ Duración total objetivo: ${duracionTotal} segundos.`
 
   const raw = await chat(
     config,
-    buildClipsSystemPrompt(character, clipCount, duracionTotal),
+    buildClipsSystemPrompt(character, clipCount, duracionTotal, imagenBasePrompt),
     userPrompt
   )
   const data = parseJSON<{ clips: Clip[] }>(raw)
