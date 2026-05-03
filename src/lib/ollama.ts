@@ -10,10 +10,42 @@ interface OllamaConfig {
 async function chat(
   config: OllamaConfig,
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  imageBase64?: string
 ): Promise<string> {
   const isDevServer = window.location.origin.includes('localhost:5173') ||
     window.location.origin.includes('127.0.0.1:5173')
+
+  if (imageBase64) {
+    const nativeUrl = isDevServer
+      ? '/ollama/api/chat'
+      : `${config.baseUrl.replace(/\/$/, '')}/api/chat`
+
+    const response = await fetch(nativeUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt, images: [imageBase64] },
+        ],
+        stream: false,
+        options: {
+          temperature: config.temperature,
+          num_predict: config.maxTokens,
+        },
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`Ollama API error (${response.status}): ${error}`)
+    }
+
+    const data = await response.json()
+    return data.message.content
+  }
 
   const url = isDevServer
     ? '/ollama/v1/chat/completions'
@@ -276,7 +308,19 @@ IMPORTANTE: Responde SOLO con un JSON válido.
 { "imagenBasePrompt": "prompt completo en inglés para SDXL" }`
 }
 
-function buildClipsSystemPrompt(character: Character, segmentosVoz: string[], duracionTotal: number, imagenBasePrompt: string): string {
+export interface ImagenAnalizada {
+  subject: string
+  outfit: string
+  entorno: string
+}
+
+function buildClipsSystemPrompt(
+  character: Character,
+  segmentosVoz: string[],
+  duracionTotal: number,
+  imagenBasePrompt: string,
+  imagenAnalizada?: ImagenAnalizada
+): string {
   const pv = character.produccionVisual
   const clipCount = segmentosVoz.length
   const duracionPorClip = Math.round(duracionTotal / clipCount)
@@ -287,13 +331,21 @@ function buildClipsSystemPrompt(character: Character, segmentosVoz: string[], du
   
   return `Eres un director de fotografía y prompt engineer especializado en IA generativa para video (LTX Video I2V).
 
+${imagenAnalizada ? `═══════════════════════════════════════════
+IMAGEN ANALIZADA — DESCRIPCIÓN REAL (FUENTE PRIMARIA)
 ═══════════════════════════════════════════
-IMAGEN BASE — ESTA ES LA IMAGEN REAL DEL VIDEO
+La IA analizó la imagen real que el usuario cargó:
+Subject: "${imagenAnalizada.subject}"
+Outfit: "${imagenAnalizada.outfit}"
+Entorno: "${imagenAnalizada.entorno}"
+
+⚠️ REGLA ABSOLUTA: El campo [SUBJECT] debe basarse EXCLUSIVAMENTE en esta descripción. No inventes ropa nueva, no cambies colores, no cambies la escena. Usa esta descripción como fuente de verdad.` : `═══════════════════════════════════════════
+IMAGEN BASE — DESCRIPCIÓN GENERADA (FUENTE PRIMARIA)
 ═══════════════════════════════════════════
 La imagen de referencia fue generada con este prompt:
 "${imagenBasePrompt}"
 
-⚠️ REGLA ABSOLUTA: El campo [SUBJECT] debe describir EXACTAMENTE a la misma persona con la MISMA ropa y MISMO entorno que describe la imagen base. NO inventes ropa nueva, NO cambies colores, NO cambies la escena. Copiá la apariencia visual directamente de la descripción de la imagen base. El [SUBJECT] debe ser IDÉNTICO en todos los clips.
+⚠️ REGLA ABSOLUTA: El campo [SUBJECT] debe describir EXACTAMENTE a la misma persona con la MISMA ropa y MISMO entorno que describe el prompt de la imagen base. NO inventes ropa nueva, NO cambies colores, NO cambies la escena.`}
 
 ═══════════════════════════════════════════
 FICHA VISUAL DEL PERSONAJE
@@ -402,18 +454,42 @@ export async function generateImagenBasePrompt(
   return data.imagenBasePrompt
 }
 
+export async function analizarImagenBase(
+  config: OllamaConfig,
+  imagenBase64: string
+): Promise<ImagenAnalizada> {
+  const systemPrompt = `Analizá esta imagen y describís EXACTAMENTE lo que ves.
+Respondé SOLO con un JSON válido. No incluyas texto antes ni después.
+
+Estructura del JSON:
+{
+  "subject": "descripción detallada del sujeto: género aproximado, edad, cabello, rasgos faciales (en inglés)",
+  "outfit": "descripción de la ropa, colores, accesorios (en inglés)",
+  "entorno": "descripción del fondo, iluminación, composición, escena (en inglés)"
+}`
+
+  const raw = await chat(
+    config,
+    systemPrompt,
+    'Analizá esta imagen y describí el sujeto, su ropa y el entorno.',
+    imagenBase64
+  )
+  return parseJSON<ImagenAnalizada>(raw)
+}
+
 export async function generateClips(
   config: OllamaConfig,
   character: Character,
   segmentosVoz: string[],
   duracionTotal: number,
-  imagenBasePrompt: string
+  imagenBasePrompt: string,
+  imagenAnalizada?: ImagenAnalizada
 ): Promise<Clip[]> {
   const userPrompt = `Generá los prompts visuales (I2V) para cada uno de los ${segmentosVoz.length} segmentos de voz.`
 
   const raw = await chat(
     config,
-    buildClipsSystemPrompt(character, segmentosVoz, duracionTotal, imagenBasePrompt),
+    buildClipsSystemPrompt(character, segmentosVoz, duracionTotal, imagenBasePrompt, imagenAnalizada),
     userPrompt
   )
   const data = parseJSON<{ clips: Clip[] }>(raw)
