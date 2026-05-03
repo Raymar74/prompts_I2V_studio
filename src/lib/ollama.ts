@@ -276,71 +276,68 @@ IMPORTANTE: Responde SOLO con un JSON válido.
 { "imagenBasePrompt": "prompt completo en inglés para SDXL" }`
 }
 
-function buildClipsSystemPrompt(character: Character, clipCount: number, duracionTotal: number, imagenBasePrompt: string): string {
+function buildClipsSystemPrompt(character: Character, segmentosVoz: string[], duracionTotal: number, imagenBasePrompt: string): string {
   const pv = character.produccionVisual
+  const clipCount = segmentosVoz.length
   const duracionPorClip = Math.round(duracionTotal / clipCount)
+  
+  const segmentosFormateados = segmentosVoz
+    .map((s, i) => `Clip ${i}: "${s}"`)
+    .join('\n')
   
   return `Eres un director de fotografía y prompt engineer especializado en IA generativa para video (LTX Video I2V).
 
-══════════════════════════════════════════
-FICHA VISUAL DEL PERSONAJE — RESPETALA
-══════════════════════════════════════════
-
-PERSONAJE: ${character.nombre}
-- Descripción visual detallada: ${pv.descripcionVisual || 'no especificada'}
-- Trigger word LoRA: ${pv.triggerWord || 'no definido'}
-- Estilo base: ${pv.estiloRecurrente || 'no especificado'}
-- Estilo de outfit: ${pv.estiloOutfit || 'casual'}
-- Expresiones y gestos recurrentes: ${pv.expresionesFaciales.join(', ') || 'ninguno específico'}
-- Plantillas de cámara: ${pv.plantillasCamara.join(', ') || 'estándar'}
-${pv.notasExtra ? `- Notas extra: ${pv.notasExtra}` : ''}
-
-══════════════════════════════════════════
-IMAGEN BASE — RESPETAR VISUALMENTE
-══════════════════════════════════════════
-Esta es la descripción de la imagen que se usará como frame base para TODOS los clips:
+═══════════════════════════════════════════
+IMAGEN BASE — ESTA ES LA IMAGEN REAL DEL VIDEO
+═══════════════════════════════════════════
+La imagen de referencia fue generada con este prompt:
 "${imagenBasePrompt}"
 
-REGLA CRÍTICA: El campo [SUBJECT] debe describir EXACTAMENTE la misma persona con la MISMA ropa y el MISMO entorno que aparece en la imagen base. NO cambies el outfit, NO cambies la escena, NO agregues elementos nuevos. Solo podés agregar movimiento de cámara, iluminación y expresiones faciales en [VISUAL] y [DIALOGUE]. El [SUBJECT] debe ser consistente en TODOS los clips.
+⚠️ REGLA ABSOLUTA: El campo [SUBJECT] debe describir EXACTAMENTE a la misma persona con la MISMA ropa y MISMO entorno que describe la imagen base. NO inventes ropa nueva, NO cambies colores, NO cambies la escena. Copiá la apariencia visual directamente de la descripción de la imagen base. El [SUBJECT] debe ser IDÉNTICO en todos los clips.
 
-══════════════════════════════════════════
-REGLAS CRÍTICAS — INNEGOCIABLES
-══════════════════════════════════════════
-1. El outfit SIEMPRE respeta lo descrito en la imagen base — NUNCA cambies la ropa
-2. Los prompts I2V JAMÁS deben animar la boca, labios, ni mandíbula (MuseTalk controla el lip sync)
-3. Los prompts I2V solo pueden animar: movimiento de cabeza, cejas, ojos, hombros, manos, postura
-4. El campo [SUBJECT] debe ser consistente en TODOS los clips (misma descripción exacta del personaje)
-5. Todos los prompts van en INGLÉS
-6. El campo [DIALOGUE] debe incluir SIEMPRE la frase literal del personaje en formato: Subject says: "exact text from the script" — luego agregar la expresión facial/micro-gestos
+═══════════════════════════════════════════
+FICHA VISUAL DEL PERSONAJE
+═══════════════════════════════════════════
 
-══════════════════════════════════════════
-ESTRUCTURA DEL PROMPT I2V (4 SECCIONES)
-══════════════════════════════════════════
+PERSONAJE: ${character.nombre}
+- Trigger word LoRA: ${pv.triggerWord || 'no definido'}
+- Expresiones y gestos: ${pv.expresionesFaciales.join(', ') || 'ninguno específico'}
+- Plantillas de cámara: ${pv.plantillasCamara.join(', ') || 'estándar'}
+${pv.notasExtra ? `- Notas: ${pv.notasExtra}` : ''}
 
-Cada clip tiene 4 campos separados que juntos forman el prompt I2V:
+═══════════════════════════════════════════
+REGLAS CRÍTICAS
+═══════════════════════════════════════════
+1. [SUBJECT]: Describe la persona, ropa y entorno. Debe coincidir CON LA IMAGEN BASE. IDÉNTICO en todos los clips.
+2. [VISUAL]: SOLO movimiento de cámara, iluminación y acción corporal (cabeza, hombros, manos). NUNCA incluyas texto hablado aquí.
+3. [DIALOGUE]: SOLO el texto hablado + expresión facial. Formato: Subject says: "texto" — expresión. NUNCA menciones movimiento de boca.
+4. [AUDIO]: Música de fondo y efectos sonoros. El video I2V se genera SIN audio (MuseTalk lo agrega después).
+5. Todos los prompts van en INGLÉS. El segmentoVoz va en ESPAÑOL.
+6. NO incluyas etiquetas como "Hook:", "Desarrollo:", "Punchline:" en ningún campo.
 
-[SUBJECT]: Descripción del sujeto/personaje. Debe ser IDENTICA en todos los clips. Ej: "A woman in her 20s with curly brown hair, wearing a black leather jacket, sitting at a desk"
+═══════════════════════════════════════════
+EJEMPLOS CORRECTOS
 
-[VISUAL]: Movimiento de cámara, iluminación, ambiente y acción visual. Ej: "Slow push-in camera movement, warm rim lighting from the right, subtle head nod"
+[SUBJECT]: "A woman in her 30s with shoulder-length wavy dark brown hair, wearing a white shirt under a black blazer, sitting at a desk with books"
 
-[DIALOGUE]: SIEMPRE en este formato: Subject says: "exact text of what the character says in this clip" — luego describe expresión facial y micro-gestos (SIN mencionar movimiento de boca). Ej: "Subject says: 'Did you know that gravity is not actually a force?' — Confident expression with raised eyebrows, eyes locking with the viewer, slight head tilt forward"
+[VISUAL]: "Slow push-in camera, warm rim lighting from the right, subtle head nod and eyebrow raise"
 
-[AUDIO]: Contexto sonoro, música de fondo y efectos ambientales. Ej: "Lo-fi hip hop beat playing softly, ambient city noise in the background"
+[DIALOGUE]: "Subject says: 'Did you know gravity is not actually a force?' — Confident expression with raised eyebrows, eyes locking with the viewer, slight head tilt forward"
 
-══════════════════════════════════════════
-SEGMENTACIÓN DEL GUIÓN
-══════════════════════════════════════════
-- Dividir el guión completo en exactamente ${clipCount} segmentos
-- Cada segmento debe ser de ~28 palabras o menos (lo que cabe en ${duracionPorClip} segundos de habla natural)
-- Cortar en pausas naturales (finales de oración, comas, puntos)
-- El segmento de voz (segmentoVoz) va en ESPAÑOL, tal cual el guión original
+[AUDIO]: "Lo-fi hip hop beat playing softly, ambient city noise in the background"
 
-══════════════════════════════════════════
+═══════════════════════════════════════════
+SEGUIMIENTO DEL GUIÓN
+═══════════════════════════════════════════
+El guión está dividido en ${clipCount} segmentos. Cada segmento corresponde a UN clip:
+
+${segmentosFormateados}
+
+═══════════════════════════════════════════
 DURACIÓN
-══════════════════════════════════════════
+═══════════════════════════════════════════
 - Genera exactamente ${clipCount} clips (numerados del 0 al ${clipCount - 1})
 - Cada clip dura ~${duracionPorClip} segundos
-- Duración total: ${duracionTotal} segundos
 - El clip 0 es el keyframe principal/portada
 
 IMPORTANTE: Tu respuesta debe ser SOLO un JSON válido. No incluyas texto antes ni después. No uses markdown code blocks.
@@ -353,12 +350,12 @@ Estructura del JSON:
       "duracion": ${duracionPorClip},
       "movimientoCamara": "nombre del movimiento",
       "textoPantalla": "",
-      "subject": "descripción del sujeto en inglés (IDÉNTICA en todos los clips)",
-      "visual": "descripción visual en inglés",
-      "dialogue": "Subject says: \"texto literal del clip\" — expresión facial en inglés",
-      "audio": "descripción de audio en inglés",
-      "segmentoVoz": "fragmento exacto del guión en español que corresponde a este clip"
-    }
+      "subject": "descripción del sujeto en inglés (IDÉNTICA en todos los clips, basada en la imagen base)",
+      "visual": "cámara + iluminación + movimiento corporal en inglés",
+      "dialogue": "Subject says: \"texto del segmento\" — expresión facial en inglés",
+      "audio": "música y ambiente en inglés",
+      "segmentoVoz": "texto exacto del segmento en español"
+}
   ]
 }`
 }
@@ -408,23 +405,15 @@ export async function generateImagenBasePrompt(
 export async function generateClips(
   config: OllamaConfig,
   character: Character,
-  guion: { hook: string; desarrollo: string; punchline: string },
+  segmentosVoz: string[],
   duracionTotal: number,
   imagenBasePrompt: string
 ): Promise<Clip[]> {
-  const clipCount = Math.max(3, Math.round(duracionTotal / 11))
-  
-  const userPrompt = `Guión del video:
-HOOK: ${guion.hook}
-DESARROLLO: ${guion.desarrollo}
-PUNCHLINE: ${guion.punchline}
-
-Distribuye el guión proporcionalmente entre los ${clipCount} clips.
-Duración total objetivo: ${duracionTotal} segundos.`
+  const userPrompt = `Generá los prompts visuales (I2V) para cada uno de los ${segmentosVoz.length} segmentos de voz.`
 
   const raw = await chat(
     config,
-    buildClipsSystemPrompt(character, clipCount, duracionTotal, imagenBasePrompt),
+    buildClipsSystemPrompt(character, segmentosVoz, duracionTotal, imagenBasePrompt),
     userPrompt
   )
   const data = parseJSON<{ clips: Clip[] }>(raw)
@@ -449,33 +438,41 @@ export async function generateCaption(
 }
 
 /**
- * Segmentación determinista de voz por tiempo.
- * Divide el texto en trozos de ~28 palabras (ritmo normal: 2.5 palabras/seg × 11s).
- * Prioriza cortar en pausas naturales (puntos, comas, signos de puntuación).
+ * Segmentación determinista de voz.
+ * Divide vozCompleta en exactamente targetCount segmentos,
+ * cortando en pausas naturales (puntos, comas) cuando es posible.
  */
 export function segmentarVoz(
   vozCompleta: string,
-  _duracionTotal: number,
-  palabrasPorClip = 28
+  targetCount: number
 ): string[] {
+  if (targetCount <= 1) return [vozCompleta.trim()]
+
   const palabras = vozCompleta.split(/\s+/).filter(Boolean)
+  if (palabras.length === 0) return []
+  if (palabras.length <= targetCount) return [vozCompleta.trim()]
+
+  const palabrasBase = Math.floor(palabras.length / targetCount)
+  const sobrantes = palabras.length % targetCount
   const segmentos: string[] = []
   let inicio = 0
 
-  while (inicio < palabras.length) {
-    const fin = Math.min(inicio + palabrasPorClip, palabras.length)
+  for (let i = 0; i < targetCount; i++) {
+    const cantidad = palabrasBase + (i < sobrantes ? 1 : 0)
+    let fin = Math.min(inicio + cantidad, palabras.length)
     let corte = fin
 
-    // Buscar pausa natural entre inicio y fin (preferir punto, luego coma)
-    for (let i = fin - 1; i > inicio; i--) {
-      const lastWord = palabras[i]
-      if (lastWord.endsWith('.') || lastWord.endsWith('!') || lastWord.endsWith('?') || lastWord.endsWith(':')) {
-        corte = i + 1
-        break
-      }
-      if (lastWord.endsWith(',') || lastWord.endsWith(';')) {
-        corte = i + 1
-        break
+    if (fin < palabras.length && i < targetCount - 1) {
+      for (let j = fin - 1; j > inicio + Math.floor(cantidad * 0.5); j--) {
+        const w = palabras[j]
+        if (w.endsWith('.') || w.endsWith('!') || w.endsWith('?') || w.endsWith(':')) {
+          corte = j + 1
+          break
+        }
+        if (w.endsWith(',') || w.endsWith(';')) {
+          corte = j + 1
+          break
+        }
       }
     }
 
@@ -483,7 +480,12 @@ export function segmentarVoz(
     inicio = corte
   }
 
-  return segmentos
+  if (inicio < palabras.length) {
+    const lastIdx = segmentos.length - 1
+    segmentos[lastIdx] = segmentos[lastIdx] + ' ' + palabras.slice(inicio).join(' ')
+  }
+
+  return segmentos.filter(Boolean)
 }
 
 /**

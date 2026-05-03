@@ -80,10 +80,11 @@ export function GenerarPage() {
       setStep('generating-prompts')
 
       const duracionTotal = getDuracionTotal()
+      const clipCount = Math.max(3, Math.min(6, Math.round(duracionTotal / 11)))
 
-      const clipsFromLLM = await generateClips(config, character, guion, duracionTotal, imagenBasePrompt)
+      const segmentosVoz = segmentarVoz(guion.vozCompleta, clipCount)
 
-      const segmentosVoz = segmentarVoz(guion.vozCompleta, duracionTotal)
+      const clipsFromLLM = await generateClips(config, character, segmentosVoz, duracionTotal, imagenBasePrompt)
 
       const clips = segmentosVoz.map((segmento, i) => {
         const llmClip = clipsFromLLM[i] || {

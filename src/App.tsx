@@ -40,7 +40,7 @@ export function App() {
         }}
       />
       <main className="main-content">{renderPage()}</main>
-      <OllamaConnectionModal ollamaUrl={settings.ollamaUrl} onConnected={() => {}} />
+      <OllamaConnectionModal ollamaUrl={settings.ollamaUrl} />
     </div>
   )
 }

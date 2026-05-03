@@ -5,7 +5,6 @@ const DISMISSED_KEY = 'ollama-connection-modal-dismissed'
 
 interface OllamaConnectionModalProps {
   ollamaUrl: string
-  onConnected: () => void
 }
 
 function detectProtocol(): 'https' | 'http' | 'file' {
@@ -122,7 +121,7 @@ function ConnectionInstructions() {
   )
 }
 
-export function OllamaConnectionModal({ ollamaUrl, onConnected: _onConnected }: OllamaConnectionModalProps) {
+export function OllamaConnectionModal({ ollamaUrl }: OllamaConnectionModalProps) {
   const [status, setStatus] = useState<'checking' | 'disconnected' | 'connected'>('checking')
   const [dismissed, setDismissed] = useState(() => {
     try {
